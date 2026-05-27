@@ -1,0 +1,102 @@
+AI-Based Manufacturing Efficiency Classification Using Sensor, Production, and 6G Network Data
+Detailed guide and project requirements for the AI-Based Manufacturing Efficiency Classification Using Sensor, Production, and 6G Network Data analysis.
+
+Background and Context
+In smart factories enabled by Industrial IoT and 6G connectivity, efficiency can fluctuate rapidly due to:
+
+• Sensor deviations
+• Network instability
+• Quality and error variations
+Traditional dashboards show what happened, but factory systems increasingly need to know:
+
+What is the current efficiency state of the manufacturing process right now?
+
+Unified Mentor
+Thales Group: Building a future
+Problem Statement
+Manufacturing teams face challenges such as:
+• Delayed detection of efficiency degradation
+• Manual interpretation of dozens of sensor and network metrics
+• Lack of automated, interpretable efficiency assessment
+Without AI support:
+• Efficiency drops may go unnoticed
+• Corrective actions are delayed
+• Production losses increase
+Dataset Fields Description:
+Column Name	Description
+Date	Calendar date on which the machine data was recorded.
+Time	Timestamp indicating the exact time of data capture.
+Machine_ID	Unique identifier assigned to each industrial machine.
+Operation_Mode	Current operating mode of the machine (e.g., normal, high-load).
+Temperature_C	Operating temperature of the machine in degrees Celsius.
+Vibration_Hz	Machine vibration frequency measured in Hertz
+Power_Consumption_kW	Electrical power consumed by the machine in kilowatts.
+Network_Latency_ms	Communication latency experienced over the 6G network in milliseconds.
+Packet_Loss_%	Percentage of data packets lost during machine communication.
+Quality_Control_Defect_Rate_%	Percentage of defective units identified during quality checks.
+Production_Speed_units_per_hr	Number of units produced per hour by the machine.
+Predictive_Maintenance_Score	AI-derived score indicating the machine’s maintenance readiness.
+Error_Rate_%	Percentage of operational errors occurring during production.
+Efficiency_Status	Target label classifying manufacturing efficiency as High, Medium, or Low.
+Data Science Methodology (Step-by-Step)
+Data Preprocessing
+• Handle time-based ordering (Date + Time)
+• Encode categorical variables (Operation_Mode)
+• Scale numerical features
+• Address class imbalance (if any)
+Feature Engineering
+• Sensor stability indicators
+• Energy efficiency ratios
+• Error-to-output ratios
+• Network reliability score
+Model Development
+• Baseline Models
+Logistic Regression (multi-class)
+• Advanced Models
+Random Forest Classifier
+Gradient Boosting / XGBoost
+• Models are compared for:
+Accuracy
+Stability
+Interpretability
+Feature Importance & Explainability
+• Identify top drivers of efficiency status
+• Explain why a sample is classified as Low / Medium / High
+• Enable trust for engineers and operators
+Deployment Logic
+• Model outputs real-time efficiency label
+• Confidence score attached to each prediction
+• Ready for integration into factory control systems
+Key Performance Indicators (KPIs)
+KPI	Description
+Efficiency Class	High / Medium / Low
+Prediction Confidence	Model certainty level
+Feature Contribution	Key influencing factors
+Machine Efficiency Profile	Per-machine classification trends
+Streamlit Web Application Requirements
+Dashboard Modules
+
+Efficiency Prediction Dashboard
+• Real-time efficiency classification
+• Confidence score visualization
+Machine-Level Insights
+• Efficiency trends per machine
+• Historical classification patterns
+Explainability Panel
+• Feature importance charts
+• Why efficiency dropped or improved
+Operational Monitoring View
+• Efficiency by operation mode
+• Network vs sensor impact comparison
+User Capabilities
+• Network quality filterMachine selectors
+• Time window filter
+• Operation mode dropdown
+• Metric sensitivity sliders
+Deliverables and Submission
+• Research paper (EDA, insights, recommendations)
+• Streamlit dashboard (live analytics)
+• Executive summary for government stakeholders
+Conclusion
+This project introduces AI-driven intelligence into smart manufacturing by automatically classifying production efficiency using sensor, quality, and 6G network data. Unlike which focus on diagnostic analysis, this project provides real-time predictive classification, enabling manufacturing systems to react instantly to efficiency changes making it a critical building block for autonomous, intelligent factories.
+

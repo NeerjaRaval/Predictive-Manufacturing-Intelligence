@@ -1,0 +1,49 @@
+services:
+  # 1. AI Inference Backend (FastAPI)
+  api:
+    build: .
+    container_name: mfg_intelligence_api
+    command: uvicorn api:app --host 0.0.0.0 --port 8000
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    volumes:
+      - ./models:/app/models
+      - ./outputs:/app/outputs
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+  # 2. Modern Web Frontend (React/Vite)
+  frontend:
+    image: node:20
+    container_name: mfg_intelligence_frontend
+    working_dir: /app/frontend
+    command: npm run dev -- --host 0.0.0.0
+    expose:
+      - "5173"
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+    depends_on:
+      - api
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    restart: unless-stopped
+
+  # 3. Enterprise Edge Proxy (Nginx)
+  proxy:
+    image: nginx:latest
+    container_name: mfg_enterprise_proxy
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - api
+    restart: unless-stopped

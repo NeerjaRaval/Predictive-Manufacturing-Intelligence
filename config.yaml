@@ -1,0 +1,70 @@
+##############################################
+# Manufacturing Efficiency Classification
+# Centralized Configuration
+##############################################
+
+data:
+  path: "Thales_Group_Manufacturing.csv"
+  test_size: 0.2
+  random_state: 42
+  date_format: "%d-%m-%Y"
+  temporal_split: true  # Use time-based split instead of random
+
+preprocessing:
+  scale_features: true
+  encode_method: "onehot"  # For Operation_Mode
+  smote:
+    enabled: true
+    sampling_strategy: "auto"
+    k_neighbors: 5
+
+feature_engineering:
+  create_energy_efficiency_ratio: true
+  create_error_to_output_ratio: true
+  create_network_reliability_score: true
+  create_sensor_stability_index: true
+  create_defect_error_interaction: true
+  create_maintenance_risk: true
+
+models:
+  logistic_regression:
+    max_iter: 1000
+    class_weight: "balanced"
+    multi_class: "multinomial"
+    solver: "lbfgs"
+
+  random_forest:
+    n_estimators: 300
+    max_depth: 20
+    min_samples_split: 5
+    min_samples_leaf: 2
+    class_weight: "balanced_subsample"
+    n_jobs: -1
+
+  xgboost:
+    n_estimators: 300
+    max_depth: 8
+    learning_rate: 0.1
+    subsample: 0.8
+    colsample_bytree: 0.8
+    objective: "multi:softprob"
+    num_class: 3
+    eval_metric: "mlogloss"
+    use_label_encoder: false
+
+tuning:
+  enabled: true
+  n_trials: 50
+  timeout: 600  # seconds
+  metric: "f1_macro"
+  cv_folds: 3
+
+evaluation:
+  cv_folds: 5
+  primary_metric: "f1_macro"
+  save_confusion_matrix: true
+  save_learning_curves: true
+
+paths:
+  models_dir: "models"
+  outputs_dir: "outputs"

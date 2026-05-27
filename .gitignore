@@ -1,0 +1,16 @@
+# Python bytecode and cache
+__pycache__/
+*.pyc
+
+# Local log files
+logs/
+*.log
+training.log
+
+# Large datasets
+Thales_Group_Manufacturing.csv
+
+# System / IDE config
+.DS_Store
+.idea/
+.vscode/

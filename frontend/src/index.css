@@ -1,0 +1,250 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Colors */
+  --bg-main: #0b0e14;
+  --bg-panel: #161b22;
+  --bg-hover: #1f242c;
+  
+  --primary-neon: #58a6ff;
+  --primary-glow: rgba(88, 166, 255, 0.5);
+  
+  --status-cyan: #38bdf8;
+  --status-good: #3fb950;
+  --status-warning: #d29922;
+  --status-critical: #f85149;
+  
+  --text-main: #f0f6fc;
+  --text-muted: #8b949e;
+  
+  --border-color: #30363d;
+  
+  /* Typography */
+  --font-family: 'Inter', sans-serif;
+  
+  /* Border Radius */
+  --radius-main: 12px;
+  --radius-sm: 8px;
+  --radius-pill: 9999px;
+  
+  /* Shadows */
+  --shadow-panel: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 10px var(--primary-glow);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Layout */
+.app-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 260px;
+  background-color: var(--bg-panel);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 1rem;
+  transition: width 0.3s ease;
+}
+
+.sidebar.collapsed {
+  width: 80px;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.topbar {
+  height: 70px;
+  background-color: var(--bg-main);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+}
+
+.page-content {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+  background-color: var(--bg-main);
+}
+
+/* Typography Utilities */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-main);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+p {
+  color: var(--text-muted);
+}
+
+/* Common UI Elements */
+.card {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-main);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-panel);
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(88, 166, 255, 0.4);
+  box-shadow: var(--shadow-panel), var(--shadow-glow);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-family);
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  outline: none;
+}
+
+.btn-primary {
+  background-color: var(--primary-neon);
+  color: #000;
+  box-shadow: 0 0 15px rgba(88, 166, 255, 0.4);
+}
+
+.btn-primary:hover {
+  background-color: #79b8ff;
+  box-shadow: 0 0 20px rgba(88, 166, 255, 0.6);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--text-muted);
+}
+
+/* Inputs */
+.input-field {
+  background-color: var(--bg-main);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-family);
+  font-size: 0.9rem;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+
+.input-field:focus {
+  border-color: var(--primary-neon);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
+}
+
+/* Tags / Badges */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tag-good { background-color: rgba(63, 185, 80, 0.15); color: var(--status-good); border: 1px solid rgba(63, 185, 80, 0.3); }
+.tag-warning { background-color: rgba(210, 153, 34, 0.15); color: var(--status-warning); border: 1px solid rgba(210, 153, 34, 0.3); }
+.tag-critical { background-color: rgba(248, 81, 73, 0.15); color: var(--status-critical); border: 1px solid rgba(248, 81, 73, 0.3); }
+.tag-neutral { background-color: rgba(139, 148, 158, 0.15); color: var(--text-muted); border: 1px solid rgba(139, 148, 158, 0.3); }
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-main); 
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-color); 
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted); 
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease forwards;
+}
+
+/* Grid Layouts */
+.grid-cols-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+.grid-cols-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.grid-cols-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+@media (max-width: 1200px) {
+  .grid-cols-4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+  .grid-cols-4, .grid-cols-2, .grid-cols-3 { grid-template-columns: 1fr; }
+  .sidebar { position: absolute; z-index: 100; height: 100%; transform: translateX(-100%); }
+  .sidebar.mobile-open { transform: translateX(0); }
+}
