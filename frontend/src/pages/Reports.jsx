@@ -1,108 +1,183 @@
-import React from 'react';
-import { Search, FileText, Download, Plus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { FileText, Download, RefreshCw, CheckCircle } from 'lucide-react';
 
-const reportData = [
-  { name: 'Production Summary May 2024', type: 'Summary', by: 'Admin', date: 'May 20, 2024', size: '2.4 MB' },
-  { name: 'Machine Health Report', type: 'Detailed', by: 'Ramesh K.', date: 'May 20, 2024', size: '5.1 MB' },
-  { name: 'Maintenance Log Q2', type: 'Summary', by: 'Suresh P.', date: 'May 18, 2024', size: '1.8 MB' },
-  { name: 'Energy Consumption Report', type: 'Detailed', by: 'Arjun M.', date: 'May 15, 2024', size: '3.7 MB' },
-  { name: 'OEE Analysis Report', type: 'Analytics', by: 'Karthik S.', date: 'May 10, 2024', size: '2.2 MB' },
-  { name: 'Quality Report', type: 'Summary', by: 'Vijay R.', date: 'May 08, 2024', size: '1.5 MB' },
-  { name: 'Downtime Analysis', type: 'Detailed', by: 'Manoj T.', date: 'May 02, 2024', size: '2.9 MB' },
-];
+function Shimmer({ height = 40, radius = 8 }) {
+  return <div style={{ height, borderRadius: radius, background: 'linear-gradient(90deg, var(--bg-hover) 25%, var(--border-color) 50%, var(--bg-hover) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />;
+}
+
+function exportCSV(rows, filename) {
+  if (!rows || rows.length === 0) return;
+  const keys = Object.keys(rows[0]);
+  const csv  = [keys.join(','), ...rows.map(r => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function Reports() {
+  const [kpis, setKpis]         = useState(null);
+  const [machines, setMachines] = useState([]);
+  const [alerts, setAlerts]     = useState([]);
+  const [maintenance, setMaint] = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [generated, setGenerated] = useState(null);
+  const [exporting, setExporting] = useState('');
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const [kRes, mRes, aRes, mainRes] = await Promise.all([
+        fetch('/api/kpis').then(r => r.json()),
+        fetch('/api/machines?limit=100').then(r => r.json()),
+        fetch('/api/alerts').then(r => r.json()),
+        fetch('/api/maintenance').then(r => r.json()),
+      ]);
+      setKpis(kRes);
+      setMachines(mRes.machines || []);
+      setAlerts(aRes.alerts || []);
+      setMaint(mainRes.tasks || []);
+    } catch { /* silent */ }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const generateReport = () => {
+    const now = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    setGenerated({
+      date: now,
+      summary: {
+        oee: kpis?.oee,
+        alerts: alerts.length,
+        critical_alerts: alerts.filter(a => a.severity === 'Critical').length,
+        maintenance_tasks: maintenance.length,
+        critical_tasks: maintenance.filter(t => t.priority === 'Critical').length,
+        total_machines: machines.length,
+        healthy: machines.filter(m => m.status === 'Healthy').length,
+        warning: machines.filter(m => m.status === 'Warning').length,
+        critical_machines: machines.filter(m => m.status === 'Critical').length,
+        efficiency_high: kpis?.efficiency_distribution?.high,
+        efficiency_low:  kpis?.efficiency_distribution?.low,
+        ai_health: kpis?.ai_health_score,
+      }
+    });
+  };
+
+  const handleExport = async (type) => {
+    setExporting(type);
+    await new Promise(r => setTimeout(r, 600)); // Simulate processing
+    if (type === 'machines')     exportCSV(machines,     `machines_report_${Date.now()}.csv`);
+    if (type === 'alerts')       exportCSV(alerts,       `alerts_report_${Date.now()}.csv`);
+    if (type === 'maintenance')  exportCSV(maintenance,  `maintenance_report_${Date.now()}.csv`);
+    setExporting('');
+  };
+
+  const reports = [
+    {
+      id: 'executive',
+      title: 'Executive Summary',
+      desc: 'High-level KPI overview with OEE, efficiency distribution, and AI health score.',
+      icon: '📊',
+      action: generateReport,
+    },
+    {
+      id: 'machines',
+      title: 'Machine Telemetry Export',
+      desc: `Export all ${machines.length} machines with their average sensor readings to CSV.`,
+      icon: '🏭',
+      action: () => handleExport('machines'),
+    },
+    {
+      id: 'alerts',
+      title: 'Active Alerts Report',
+      desc: `Export all ${alerts.length} threshold violations and anomaly alerts to CSV.`,
+      icon: '🚨',
+      action: () => handleExport('alerts'),
+    },
+    {
+      id: 'maintenance',
+      title: 'Maintenance Queue Export',
+      desc: `Export all ${maintenance.length} predictive maintenance tasks to CSV.`,
+      icon: '🔧',
+      action: () => handleExport('maintenance'),
+    },
+  ];
+
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      
-      {/* Top Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h2 style={{ marginBottom: '5px' }}>Reports</h2>
-          <p style={{ fontSize: '0.9rem' }}>Generate and manage reports</p>
-        </div>
-      </div>
+    <>
+      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+      <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-      {/* KPI Cards */}
-      <div className="grid-cols-4">
-        <div className="card">
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '10px' }}>Total Reports</p>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>156</div>
-        </div>
-        <div className="card">
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '10px' }}>Generated This Month</p>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>23</div>
-        </div>
-        <div className="card">
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '10px' }}>Scheduled Reports</p>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>12</div>
-        </div>
-        <div className="card">
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '10px' }}>Custom Reports</p>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>8</div>
-        </div>
-      </div>
-
-      {/* Table Container */}
-      <div className="card" style={{ flex: 1, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        
-        {/* Toolbar */}
-        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: '15px' }}>
-            <div style={{ position: 'relative' }}>
-              <Search size={16} style={{ position: 'absolute', left: 10, top: 10, color: 'var(--text-muted)' }} />
-              <input type="text" className="input-field" placeholder="Search reports..." style={{ paddingLeft: '35px', width: '250px' }} />
-            </div>
-            <select className="input-field" style={{ width: '150px' }}><option>All Types</option></select>
-            <select className="input-field" style={{ width: '150px' }}><option>This Month</option></select>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <div>
+            <h2 style={{ marginBottom: 5 }}>Reports</h2>
+            <p style={{ fontSize: '0.9rem' }}>Generate and export reports from your local manufacturing data</p>
           </div>
-          
-          <button className="btn btn-primary">
-            <Plus size={16} /> Generate Report
-          </button>
+          <button className="btn btn-secondary" onClick={load}><RefreshCw size={14} /> Reload Data</button>
         </div>
 
-        {/* Table */}
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ background: 'rgba(255,255,255,0.02)', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>
-                <th style={{ padding: '15px', fontWeight: 600, borderBottom: '1px solid var(--border-color)' }}>Report Name</th>
-                <th style={{ padding: '15px', fontWeight: 600, borderBottom: '1px solid var(--border-color)' }}>Type</th>
-                <th style={{ padding: '15px', fontWeight: 600, borderBottom: '1px solid var(--border-color)' }}>Generated By</th>
-                <th style={{ padding: '15px', fontWeight: 600, borderBottom: '1px solid var(--border-color)' }}>Generated On</th>
-                <th style={{ padding: '15px', fontWeight: 600, borderBottom: '1px solid var(--border-color)' }}>Size</th>
-                <th style={{ padding: '15px', fontWeight: 600, borderBottom: '1px solid var(--border-color)', textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reportData.map((r, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row-hover">
-                  <td style={{ padding: '15px', fontWeight: 500 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <FileText size={18} color="var(--primary-neon)" />
-                      {r.name}
-                    </div>
-                  </td>
-                  <td style={{ padding: '15px', color: 'var(--text-muted)' }}>{r.type}</td>
-                  <td style={{ padding: '15px' }}>{r.by}</td>
-                  <td style={{ padding: '15px', color: 'var(--text-muted)' }}>{r.date}</td>
-                  <td style={{ padding: '15px', color: 'var(--text-muted)' }}>{r.size}</td>
-                  <td style={{ padding: '15px', textAlign: 'right' }}>
-                    <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.8rem' }}>
-                      <Download size={14} /> Download
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {/* Report Cards */}
+        <div className="grid-cols-2">
+          {reports.map(r => (
+            <div key={r.id} className="card" style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}>
+              <div style={{ fontSize: '2.5rem', flexShrink: 0 }}>{r.icon}</div>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ marginBottom: 6, fontSize: '1rem' }}>{r.title}</h3>
+                <p style={{ fontSize: '0.85rem', marginBottom: '1rem', lineHeight: 1.5 }}>{r.desc}</p>
+                <button className="btn btn-primary" onClick={r.action} disabled={loading || exporting === r.id}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px' }}>
+                  {exporting === r.id ? '⏳ Exporting...' : r.id === 'executive' ? '📄 Generate Report' : <><Download size={14} /> Export CSV</>}
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
+
+        {/* Generated Executive Summary */}
+        {generated && (
+          <div className="card" style={{ borderColor: 'rgba(88,166,255,0.4)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div>
+                <h3>📊 Executive Summary Report</h3>
+                <p style={{ fontSize: '0.8rem' }}>Generated on {generated.date} · Thales Group Manufacturing Intelligence</p>
+              </div>
+              <CheckCircle size={24} color="var(--status-good)" />
+            </div>
+
+            <div className="grid-cols-4" style={{ gap: '1rem' }}>
+              {[
+                ['OEE',           `${generated.summary.oee}%`,                 'var(--status-cyan)'],
+                ['AI Health',     `${generated.summary.ai_health}/100`,         'var(--status-good)'],
+                ['Active Alerts', generated.summary.alerts,                     'var(--status-warning)'],
+                ['Critical',      generated.summary.critical_alerts,            'var(--status-critical)'],
+                ['Total Machines',generated.summary.total_machines,             'var(--text-main)'],
+                ['Healthy',       generated.summary.healthy,                    'var(--status-good)'],
+                ['At Risk',       generated.summary.warning + generated.summary.critical_machines, 'var(--status-warning)'],
+                ['Maint. Tasks',  generated.summary.maintenance_tasks,          'var(--primary-neon)'],
+              ].map(([label, val, color]) => (
+                <div key={label} style={{ padding: '12px', background: 'var(--bg-hover)', borderRadius: 10 }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 4 }}>{label}</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color }}>{val ?? '--'}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ marginTop: '1.25rem', padding: '1rem', borderRadius: 10, background: 'rgba(88,166,255,0.05)', border: '1px solid rgba(88,166,255,0.15)' }}>
+              <div style={{ fontWeight: 600, marginBottom: 8, color: 'var(--primary-neon)', fontSize: '0.9rem' }}>📝 AI-Generated Insights</div>
+              <ul style={{ paddingLeft: 20, color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.8 }}>
+                <li>Overall Equipment Effectiveness is at <strong style={{ color: 'var(--text-main)' }}>{generated.summary.oee}%</strong> — {generated.summary.oee >= 75 ? 'above industry average.' : 'below target — review bottleneck machines.'}</li>
+                <li>High Efficiency classification accounts for <strong style={{ color: 'var(--status-good)' }}>{generated.summary.efficiency_high}%</strong> of all production records. Low Efficiency: <strong style={{ color: 'var(--status-critical)' }}>{generated.summary.efficiency_low}%</strong>.</li>
+                <li>There are <strong style={{ color: 'var(--status-critical)' }}>{generated.summary.critical_alerts} Critical</strong> active alerts requiring immediate intervention.</li>
+                <li><strong style={{ color: 'var(--status-warning)' }}>{generated.summary.maintenance_tasks}</strong> predictive maintenance tasks are pending ({generated.summary.critical_tasks} Critical priority).</li>
+                <li>AI Health Score is <strong style={{ color: 'var(--status-good)' }}>{generated.summary.ai_health}/100</strong> — overall factory health is {generated.summary.ai_health >= 75 ? 'excellent.' : generated.summary.ai_health >= 50 ? 'fair — recommend preventative action.' : 'poor — immediate maintenance required.'}</li>
+              </ul>
+            </div>
+          </div>
+        )}
       </div>
-      
-      <style dangerouslySetInnerHTML={{__html: `
-        .table-row-hover:hover { background-color: rgba(255,255,255,0.02); }
-      `}} />
-    </div>
+    </>
   );
 }

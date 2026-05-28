@@ -1,125 +1,165 @@
-import React from 'react';
-import { Search, Plus, Wrench } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { RefreshCw, Wrench, CheckCircle, Clock } from 'lucide-react';
 
-const maintenanceData = [
-  { id: 'WO-001', machine: 'MCH-004', type: 'Preventive', priority: 'High', status: 'In Progress', assigned: 'Ramesh K.', due: 'May 21, 2024' },
-  { id: 'WO-002', machine: 'MCH-002', type: 'Preventive', priority: 'Medium', status: 'Open', assigned: 'Suresh P.', due: 'May 22, 2024' },
-  { id: 'WO-003', machine: 'MCH-012', type: 'Corrective', priority: 'High', status: 'Open', assigned: 'Arjun M.', due: 'May 20, 2024' },
-  { id: 'WO-004', machine: 'MCH-005', type: 'Predictive', priority: 'Medium', status: 'Open', assigned: 'Karthik S.', due: 'May 23, 2024' },
-  { id: 'WO-005', machine: 'MCH-001', type: 'Corrective', priority: 'Low', status: 'In Progress', assigned: 'Vijay R.', due: 'May 21, 2024' },
-  { id: 'WO-006', machine: 'MCH-007', type: 'Predictive', priority: 'Low', status: 'Scheduled', assigned: 'Manoj T.', due: 'May 25, 2024' },
-  { id: 'WO-007', machine: 'MCH-003', type: 'Preventive', priority: 'Low', status: 'Scheduled', assigned: 'David R.', due: 'May 26, 2024' },
-];
+function Shimmer({ height = 40, radius = 8 }) {
+  return <div style={{ height, borderRadius: radius, background: 'linear-gradient(90deg, var(--bg-hover) 25%, var(--border-color) 50%, var(--bg-hover) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />;
+}
+
+const PRIORITY_MAP = {
+  Critical: { color: 'var(--status-critical)', tagClass: 'critical', urgency: '🚨 Immediate' },
+  High:     { color: 'var(--status-warning)',  tagClass: 'warning',  urgency: '⚠️ Urgent'    },
+  Medium:   { color: '#bc8cff',               tagClass: 'neutral',  urgency: '📌 Scheduled'  },
+  Low:      { color: 'var(--status-good)',    tagClass: 'good',     urgency: '✅ Routine'    },
+};
 
 export default function Maintenance() {
+  const [data, setData]         = useState(null);
+  const [loading, setLoading]   = useState(true);
+  const [completed, setDone]    = useState(new Set());
+  const [inProgress, setInProg] = useState(new Set());
+  const [priorityFilter, setPri]= useState('');
+  const [sort, setSort]         = useState('due_days');
+
+  const load = () => {
+    setLoading(true);
+    fetch('/api/maintenance')
+      .then(r => r.json())
+      .then(d => { setData(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const tasks = (data?.tasks || [])
+    .filter(t => !completed.has(t.id))
+    .filter(t => !priorityFilter || t.priority === priorityFilter)
+    .sort((a, b) => {
+      if (sort === 'due_days') return a.due_days - b.due_days;
+      const po = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+      return po[a.priority] - po[b.priority];
+    });
+
+  const toggleInProgress = (id) => {
+    setInProg(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      
-      {/* Top Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h2 style={{ marginBottom: '5px' }}>Maintenance</h2>
-          <p style={{ fontSize: '0.9rem' }}>Manage maintenance schedules and work orders</p>
-        </div>
-      </div>
+    <>
+      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+      <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-      {/* KPI Cards */}
-      <div className="grid-cols-4" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
-        <div className="card">
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '10px' }}>Open Work Orders</p>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>32</div>
-        </div>
-        <div className="card" style={{ borderBottom: '3px solid var(--primary-neon)' }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '10px' }}>In Progress</p>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--primary-neon)' }}>12</div>
-        </div>
-        <div className="card" style={{ borderBottom: '3px solid var(--status-good)' }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '10px' }}>Completed</p>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--status-good)' }}>108</div>
-        </div>
-        <div className="card" style={{ borderBottom: '3px solid var(--status-warning)' }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '10px' }}>Scheduled</p>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--status-warning)' }}>7</div>
-        </div>
-        <div className="card">
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '10px' }}>Total</p>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>24</div>
-        </div>
-      </div>
-
-      {/* Table Container */}
-      <div className="card" style={{ flex: 1, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        
-        {/* Toolbar */}
-        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: '15px' }}>
-            <div style={{ position: 'relative' }}>
-              <Search size={16} style={{ position: 'absolute', left: 10, top: 10, color: 'var(--text-muted)' }} />
-              <input type="text" className="input-field" placeholder="Search work orders..." style={{ paddingLeft: '35px', width: '220px' }} />
-            </div>
-            <select className="input-field" style={{ width: '130px' }}><option>All Types</option></select>
-            <select className="input-field" style={{ width: '130px' }}><option>All Priorities</option></select>
-            <select className="input-field" style={{ width: '130px' }}><option>This Month</option></select>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <div>
+            <h2 style={{ marginBottom: 5 }}>Maintenance Queue</h2>
+            <p style={{ fontSize: '0.9rem' }}>AI-predicted maintenance tasks ranked by urgency</p>
           </div>
-          
-          <button className="btn btn-primary">
-            <Plus size={16} /> New Work Order
-          </button>
+          <button className="btn btn-secondary" onClick={load}><RefreshCw size={14} /> Refresh</button>
         </div>
 
-        {/* Table */}
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ background: 'rgba(255,255,255,0.02)', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>
-                <th style={{ padding: '15px', fontWeight: 600, borderBottom: '1px solid var(--border-color)' }}>Work Order ID</th>
-                <th style={{ padding: '15px', fontWeight: 600, borderBottom: '1px solid var(--border-color)' }}>Machine</th>
-                <th style={{ padding: '15px', fontWeight: 600, borderBottom: '1px solid var(--border-color)' }}>Type</th>
-                <th style={{ padding: '15px', fontWeight: 600, borderBottom: '1px solid var(--border-color)' }}>Priority</th>
-                <th style={{ padding: '15px', fontWeight: 600, borderBottom: '1px solid var(--border-color)' }}>Status</th>
-                <th style={{ padding: '15px', fontWeight: 600, borderBottom: '1px solid var(--border-color)' }}>Assigned To</th>
-                <th style={{ padding: '15px', fontWeight: 600, borderBottom: '1px solid var(--border-color)' }}>Due Date</th>
-                <th style={{ padding: '15px', fontWeight: 600, borderBottom: '1px solid var(--border-color)', textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {maintenanceData.map((m) => (
-                <tr key={m.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row-hover">
-                  <td style={{ padding: '15px', fontWeight: 500, color: 'var(--text-muted)' }}>{m.id}</td>
-                  <td style={{ padding: '15px', color: 'var(--primary-neon)', fontWeight: 500 }}>{m.machine}</td>
-                  <td style={{ padding: '15px' }}>{m.type}</td>
-                  <td style={{ padding: '15px' }}>
-                    <span style={{ color: m.priority === 'High' ? 'var(--status-critical)' : m.priority === 'Medium' ? 'var(--status-warning)' : 'var(--status-good)', fontWeight: 600 }}>
-                      {m.priority}
-                    </span>
-                  </td>
-                  <td style={{ padding: '15px' }}>
-                    <span style={{ color: m.status === 'In Progress' ? 'var(--primary-neon)' : m.status === 'Open' ? 'var(--status-critical)' : m.status === 'Scheduled' ? 'var(--status-warning)' : 'var(--status-good)' }}>
-                      {m.status}
-                    </span>
-                  </td>
-                  <td style={{ padding: '15px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>
-                        {m.assigned.charAt(0)}
+        {/* KPI Cards */}
+        <div className="grid-cols-4">
+          {[
+            ['Total Tasks', data?.total, 'var(--text-main)'],
+            ['Critical',   data?.critical_count, 'var(--status-critical)'],
+            ['High',       data?.high_count,     'var(--status-warning)'],
+            ['Completed',  completed.size,        'var(--status-good)'],
+          ].map(([label, val, color]) => (
+            <div key={label} className="card">
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: 10 }}>{label}</p>
+              {loading ? <Shimmer height={36} /> : (
+                <div style={{ fontSize: '2.2rem', fontWeight: 'bold', color }}>{val ?? 0}</div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Filters */}
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <select className="input-field" style={{ width: 160, fontSize: '0.85rem' }} value={priorityFilter} onChange={e => setPri(e.target.value)}>
+            <option value="">All Priorities</option>
+            <option value="Critical">Critical</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+          <select className="input-field" style={{ width: 180, fontSize: '0.85rem' }} value={sort} onChange={e => setSort(e.target.value)}>
+            <option value="due_days">Sort by Due Date</option>
+            <option value="priority">Sort by Priority</option>
+          </select>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: 8 }}>{tasks.length} pending tasks</span>
+        </div>
+
+        {/* Tasks */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {loading
+            ? Array.from({ length: 6 }).map((_, i) => <Shimmer key={i} height={80} />)
+            : tasks.length === 0
+              ? (
+                <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
+                  <CheckCircle size={40} color="var(--status-good)" style={{ marginBottom: 12 }} />
+                  <div style={{ fontWeight: 600, color: 'var(--status-good)' }}>All maintenance tasks completed!</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 6 }}>No pending tasks match your filter.</div>
+                </div>
+              )
+              : tasks.map(task => {
+                  const meta = PRIORITY_MAP[task.priority] || PRIORITY_MAP.Low;
+                  const isInProg = inProgress.has(task.id);
+                  return (
+                    <div key={task.id} className="card" style={{
+                      borderLeft: `4px solid ${meta.color}`,
+                      display: 'flex', alignItems: 'center', gap: '1.5rem',
+                      transition: 'all 0.2s',
+                      opacity: isInProg ? 0.85 : 1,
+                    }}>
+                      {/* Left: Task info */}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                          <span style={{ color: 'var(--primary-neon)', fontWeight: 700, fontSize: '1rem' }}>{task.machine}</span>
+                          <span className={`tag tag-${meta.tagClass}`}>{task.priority}</span>
+                          {isInProg && <span className="tag tag-neutral">In Progress</span>}
+                        </div>
+                        <div style={{ fontWeight: 500, marginBottom: 4 }}>{task.task}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          {meta.urgency} &nbsp;·&nbsp; Score: <strong style={{ color: 'var(--text-main)' }}>{task.score}</strong>
+                          &nbsp;·&nbsp; Task ID: {task.id}
+                        </div>
                       </div>
-                      {m.assigned}
+
+                      {/* Due Days */}
+                      <div style={{ textAlign: 'center', minWidth: 80 }}>
+                        <Clock size={16} color={meta.color} style={{ marginBottom: 4 }} />
+                        <div style={{ fontSize: '1.6rem', fontWeight: 700, color: meta.color, lineHeight: 1 }}>
+                          {task.due_days}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          {task.due_days === 1 ? 'day left' : 'days left'}
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <button
+                          onClick={() => toggleInProgress(task.id)}
+                          style={{ padding: '6px 14px', borderRadius: 6, fontSize: '0.8rem', fontWeight: 500, cursor: 'pointer', border: '1px solid var(--border-color)', background: isInProg ? 'rgba(88,166,255,0.15)' : 'var(--bg-hover)', color: isInProg ? 'var(--primary-neon)' : 'var(--text-muted)', transition: 'all 0.2s', whiteSpace: 'nowrap' }}>
+                          {isInProg ? '⏸ Pause' : '▶ Start'}
+                        </button>
+                        <button
+                          onClick={() => setDone(prev => new Set([...prev, task.id]))}
+                          style={{ padding: '6px 14px', borderRadius: 6, fontSize: '0.8rem', fontWeight: 500, cursor: 'pointer', border: '1px solid var(--status-good)', background: 'rgba(63,185,80,0.1)', color: 'var(--status-good)', transition: 'all 0.2s', whiteSpace: 'nowrap' }}>
+                          ✓ Complete
+                        </button>
+                      </div>
                     </div>
-                  </td>
-                  <td style={{ padding: '15px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>{m.due}</td>
-                  <td style={{ padding: '15px', textAlign: 'right' }}>
-                    <button style={{ background: 'transparent', border: 'none', color: 'var(--primary-neon)', cursor: 'pointer', fontWeight: 500 }}>View</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  );
+              })
+          }
         </div>
       </div>
-      
-      <style dangerouslySetInnerHTML={{__html: `
-        .table-row-hover:hover { background-color: rgba(255,255,255,0.02); }
-      `}} />
-    </div>
+    </>
   );
 }

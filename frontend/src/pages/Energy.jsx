@@ -1,179 +1,161 @@
-import React from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Download } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { Zap, RefreshCw } from 'lucide-react';
 
-const energyData = [
-  { name: 'May 14', value: 1200 },
-  { name: 'May 15', value: 1350 },
-  { name: 'May 16', value: 1100 },
-  { name: 'May 17', value: 1400 },
-  { name: 'May 18', value: 1250 },
-  { name: 'May 19', value: 1380 },
-  { name: 'May 20', value: 1450 },
-];
-
-const deptData = [
-  { name: 'Machining', value: 35.2, color: 'var(--primary-neon)' },
-  { name: 'Assembly', value: 25.4, color: 'var(--status-warning)' },
-  { name: 'Forming', value: 20.2, color: 'var(--status-critical)' },
-  { name: 'Molding', value: 12.8, color: '#bc8cff' },
-  { name: 'Others', value: 6.4, color: 'var(--text-muted)' },
-];
+const TOOLTIP_STYLE = { backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' };
+function Shimmer({ height = 40, radius = 8 }) {
+  return <div style={{ height, borderRadius: radius, background: 'linear-gradient(90deg, var(--bg-hover) 25%, var(--border-color) 50%, var(--bg-hover) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />;
+}
 
 export default function Energy() {
+  const [data, setData]   = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [days, setDays]   = useState(14);
+
+  const load = () => {
+    setLoading(true);
+    fetch(`/api/energy?days=${days}`)
+      .then(r => r.json())
+      .then(d => { setData(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, [days]);
+
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      
-      {/* Top Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h2 style={{ marginBottom: '5px' }}>Energy Management</h2>
-          <p style={{ fontSize: '0.9rem' }}>Monitor and optimize energy consumption</p>
-        </div>
-        <div style={{ display: 'flex', gap: '15px' }}>
-          <select className="input-field" style={{ width: '150px' }}>
-            <option>This Month</option>
-            <option>Last Month</option>
-          </select>
-          <button className="btn btn-secondary">
-            <Download size={16} /> Export
-          </button>
-        </div>
-      </div>
+    <>
+      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+      <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-      {/* KPI Cards */}
-      <div className="grid-cols-4">
-        <div className="card">
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '10px' }}>Total Consumption</p>
-          <div style={{ display: 'flex', alignItems: 'end', gap: '10px' }}>
-            <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>12,456<span style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }}> kWh</span></div>
-            <span style={{ color: 'var(--status-critical)', fontSize: '0.85rem', marginBottom: '8px' }}>+4.2% vs last month</span>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <div>
+            <h2 style={{ marginBottom: 5 }}>Energy Analytics</h2>
+            <p style={{ fontSize: '0.9rem' }}>Power consumption patterns and energy efficiency metrics</p>
           </div>
-        </div>
-        <div className="card">
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '10px' }}>Cost</p>
-          <div style={{ display: 'flex', alignItems: 'end', gap: '10px' }}>
-            <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>$2,345</div>
-            <span style={{ color: 'var(--status-critical)', fontSize: '0.85rem', marginBottom: '8px' }}>+12.8% vs last month</span>
-          </div>
-        </div>
-        <div className="card">
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '10px' }}>CO2 Emissions</p>
-          <div style={{ display: 'flex', alignItems: 'end', gap: '10px' }}>
-            <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>8.7<span style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }}> tCO2</span></div>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '8px' }}>-0.5% vs last month</span>
-          </div>
-        </div>
-        <div className="card">
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '10px' }}>Efficiency</p>
-          <div style={{ display: 'flex', alignItems: 'end', gap: '10px' }}>
-            <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>85.2<span style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }}>%</span></div>
-            <span style={{ color: 'var(--status-good)', fontSize: '0.85rem', marginBottom: '8px' }}>+3.2% vs last month</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Charts Row */}
-      <div className="grid-cols-2">
-        <div className="card">
-          <h3 style={{ marginBottom: '1.5rem' }}>Energy Consumption Trend (kWh)</h3>
-          <div style={{ height: '300px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={energyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorEnergy" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--primary-neon)" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="var(--primary-neon)" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-                <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip contentStyle={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-color)' }} />
-                <Area type="monotone" dataKey="value" stroke="var(--primary-neon)" strokeWidth={3} fillOpacity={1} fill="url(#colorEnergy)" />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <select className="input-field" style={{ width: 150, fontSize: '0.85rem' }} value={days} onChange={e => setDays(Number(e.target.value))}>
+              <option value={7}>Last 7 Days</option>
+              <option value={14}>Last 14 Days</option>
+              <option value={30}>Last 30 Days</option>
+            </select>
+            <button className="btn btn-secondary" onClick={load}><RefreshCw size={14} /> Refresh</button>
           </div>
         </div>
 
-        <div className="card">
-          <h3 style={{ marginBottom: '1.5rem' }}>Energy by Department</h3>
-          <div style={{ display: 'flex', height: '300px' }}>
-            <div style={{ flex: 1, position: 'relative' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={deptData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={70}
-                    outerRadius={100}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {deptData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={{ backgroundColor: 'var(--bg-panel)', borderColor: 'var(--border-color)' }} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>12,456</div>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Total kWh</div>
+        {/* KPI Cards */}
+        <div className="grid-cols-4">
+          {[
+            ['Total Power Period', data?.summary?.total_kwh_period, 'kW', 'var(--primary-neon)', <Zap size={20} color="var(--primary-neon)" />],
+            ['Average Power', data?.summary?.avg_kw, 'kW', 'var(--status-cyan)', null],
+            ['Peak Power', data?.summary?.peak_kw, 'kW', 'var(--status-critical)', null],
+            ['Latency-Power Correlation', data?.summary?.latency_power_corr, 'r', 'var(--status-warning)', null],
+          ].map(([label, val, unit, color, icon]) => (
+            <div key={label} className="card">
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: 10 }}>{label}</p>
+              {loading ? <Shimmer height={40} /> : (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                  <div style={{ fontSize: '2rem', fontWeight: 'bold', color }}>
+                    {val ?? '--'}<span style={{ fontSize: '1rem', color: 'var(--text-muted)', marginLeft: 4 }}>{unit}</span>
+                  </div>
+                  {icon}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Charts Row */}
+        <div className="grid-cols-2">
+          {/* Power Trend */}
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3>Power Consumption Trend</h3>
+              <div style={{ display: 'flex', gap: 12, fontSize: '0.8rem' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 3, background: 'var(--primary-neon)', display: 'inline-block', borderRadius: 2 }} /> Avg</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 10, height: 3, background: 'var(--status-critical)', display: 'inline-block', borderRadius: 2 }} /> Peak</span>
               </div>
             </div>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '15px' }}>
-              {deptData.map((item, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ width: 12, height: 12, borderRadius: '2px', background: item.color }}></span>
-                    <span style={{ color: 'var(--text-main)' }}>{item.name}</span>
-                  </div>
-                  <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>{item.value}%</span>
-                </div>
-              ))}
-            </div>
+            {loading ? <Shimmer height={260} radius={12} /> : (
+              <div style={{ height: 260 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={data?.power_trend || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="avgGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%"  stopColor="var(--primary-neon)" stopOpacity={0.7} />
+                        <stop offset="95%" stopColor="var(--primary-neon)" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="peakGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%"  stopColor="var(--status-critical)" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="var(--status-critical)" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
+                    <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
+                    <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} />
+                    <Area type="monotone" dataKey="max_power" stroke="var(--status-critical)" strokeWidth={2} fill="url(#peakGrad)" />
+                    <Area type="monotone" dataKey="avg_power" stroke="var(--primary-neon)" strokeWidth={3} fill="url(#avgGrad)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+
+          {/* Top Power Consumers */}
+          <div className="card">
+            <h3 style={{ marginBottom: '1.25rem' }}>Top Power-Consuming Machines</h3>
+            {loading ? <Shimmer height={260} radius={12} /> : (
+              <div style={{ height: 260 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data?.top_machines_power || []} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" horizontal={false} />
+                    <XAxis type="number" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
+                    <YAxis type="category" dataKey="machine" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} width={45} />
+                    <Tooltip cursor={{ fill: 'var(--bg-hover)' }} contentStyle={TOOLTIP_STYLE} />
+                    <Bar dataKey="avg_power" fill="var(--primary-neon)" radius={[0, 4, 4, 0]} barSize={14} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
         </div>
-      </div>
 
-      {/* Bottom Row */}
-      <div className="card">
-        <h3 style={{ marginBottom: '1.5rem' }}>Top Energy Consumers</h3>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead>
-            <tr style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase', borderBottom: '1px solid var(--border-color)' }}>
-              <th style={{ padding: '10px 0', fontWeight: 600 }}>Department</th>
-              <th style={{ padding: '10px 0', fontWeight: 600 }}>Consumption (kWh)</th>
-              <th style={{ padding: '10px 0', fontWeight: 600 }}>Percentage</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[
-              { dept: 'Machining', val: '4,384', pct: 35.2 },
-              { dept: 'Assembly', val: '3,164', pct: 25.4 },
-              { dept: 'Forming', val: '2,516', pct: 20.2 },
-              { dept: 'Molding', val: '1,594', pct: 12.8 },
-              { dept: 'Others', val: '798', pct: 6.4 },
-            ].map((d, i) => (
-              <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                <td style={{ padding: '15px 0', fontWeight: 500 }}>{d.dept}</td>
-                <td style={{ padding: '15px 0', color: 'var(--text-muted)' }}>{d.val}</td>
-                <td style={{ padding: '15px 0', width: '50%' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <div style={{ flex: 1, height: '8px', background: 'var(--bg-hover)', borderRadius: '4px', overflow: 'hidden' }}>
-                      <div style={{ width: `${d.pct}%`, height: '100%', background: 'var(--primary-neon)' }}></div>
-                    </div>
-                    <span style={{ fontSize: '0.85rem', width: '40px', textAlign: 'right' }}>{d.pct}%</span>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {/* Energy Efficiency by Mode */}
+        <div className="card">
+          <h3 style={{ marginBottom: '1rem' }}>Energy Efficiency by Operation Mode</h3>
+          {loading ? <Shimmer height={120} /> : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase', borderBottom: '1px solid var(--border-color)' }}>
+                    {['Operation Mode', 'Avg Power (kW)', 'Avg Speed (u/h)', 'Efficiency Ratio (units/kW)', 'Rating'].map(h => (
+                      <th key={h} style={{ padding: '10px 16px', fontWeight: 600 }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(data?.energy_by_mode || []).map((row, i) => {
+                    const rating = row.efficiency_ratio > 40 ? 'Excellent' : row.efficiency_ratio > 25 ? 'Good' : row.efficiency_ratio > 15 ? 'Fair' : 'Poor';
+                    const ratingClass = rating === 'Excellent' ? 'good' : rating === 'Good' ? 'good' : rating === 'Fair' ? 'warning' : 'critical';
+                    return (
+                      <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.025)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                        <td style={{ padding: '14px 16px', fontWeight: 600 }}>{row.mode}</td>
+                        <td style={{ padding: '14px 16px' }}>{row.avg_power}</td>
+                        <td style={{ padding: '14px 16px' }}>{row.avg_speed}</td>
+                        <td style={{ padding: '14px 16px', fontWeight: 700, color: 'var(--primary-neon)' }}>{row.efficiency_ratio}</td>
+                        <td style={{ padding: '14px 16px' }}><span className={`tag tag-${ratingClass}`}>{rating}</span></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
-
-    </div>
+    </>
   );
 }

@@ -1,0 +1,10 @@
+{
+  "name": "predictive-manufacturing-intelligence",
+  "version": "1.0.0",
+  "description": "Root runner for Predictive Manufacturing Intelligence",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "install-all": "npm install --prefix frontend",
+    "start-api": "uvicorn api:app --reload --port 8000"
+  }
+}

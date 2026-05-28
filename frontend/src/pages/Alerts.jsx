@@ -1,114 +1,188 @@
-import React from 'react';
-import { Search, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { RefreshCw, Bell, Thermometer, Activity, Wifi, AlertTriangle } from 'lucide-react';
 
-const alertData = [
-  { id: 'ALT-001', machine: 'MCH-004', type: 'Temperature', priority: 'Critical', msg: 'Hydraulic oil temperature high', time: '10:30 AM', status: 'New' },
-  { id: 'ALT-002', machine: 'MCH-002', type: 'Vibration', priority: 'High', msg: 'Abnormal vibration detected', time: '09:15 AM', status: 'New' },
-  { id: 'ALT-003', machine: 'MCH-012', type: 'Pressure', priority: 'Medium', msg: 'Air pressure below threshold', time: '08:45 AM', status: 'Acknowledged' },
-  { id: 'ALT-004', machine: 'MCH-005', type: 'Current', priority: 'High', msg: 'Motor current above normal', time: '08:20 AM', status: 'New' },
-  { id: 'ALT-005', machine: 'MCH-001', type: 'Temperature', priority: 'Low', msg: 'Spindle temperature elevated', time: '07:50 AM', status: 'Acknowledged' },
-  { id: 'ALT-006', machine: 'MCH-007', type: 'Sensor', priority: 'Low', msg: 'Sensor reading unstable', time: '06:30 AM', status: 'Acknowledged' },
-  { id: 'ALT-007', machine: 'MCH-003', type: 'Speed', priority: 'Low', msg: 'Speed variation detected', time: '06:10 AM', status: 'New' },
-];
+function Shimmer({ height = 40, radius = 8 }) {
+  return <div style={{ height, borderRadius: radius, background: 'linear-gradient(90deg, var(--bg-hover) 25%, var(--border-color) 50%, var(--bg-hover) 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />;
+}
+
+const CATEGORY_ICON = {
+  Thermal:    <Thermometer size={16} />,
+  Mechanical: <Activity size={16} />,
+  Network:    <Wifi size={16} />,
+  Quality:    <AlertTriangle size={16} />,
+};
 
 export default function Alerts() {
+  const [data, setData]       = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter]   = useState('');
+  const [catFilter, setCat]   = useState('');
+  const [acknowledged, setAck] = useState(new Set());
+
+  const load = () => {
+    setLoading(true);
+    fetch('/api/alerts')
+      .then(r => r.json())
+      .then(d => { setData(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const allAlerts = data?.alerts || [];
+  const filtered  = allAlerts.filter(a => {
+    if (acknowledged.has(a.id)) return false;
+    const matchSev = !filter   || a.severity.toLowerCase() === filter.toLowerCase();
+    const matchCat = !catFilter || a.category === catFilter;
+    return matchSev && matchCat;
+  });
+
+  const categories = [...new Set(allAlerts.map(a => a.category))];
+
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      
-      {/* Top Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h2 style={{ marginBottom: '5px' }}>Alerts</h2>
-          <p style={{ fontSize: '0.9rem' }}>Real-time alerts and notifications</p>
-        </div>
-      </div>
+    <>
+      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}} @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
+      <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-      {/* KPI Cards */}
-      <div className="grid-cols-4" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
-        <div className="card">
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '10px' }}>Total Alerts</p>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>45</div>
-        </div>
-        <div className="card" style={{ borderBottom: '3px solid var(--status-critical)' }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '10px' }}>Critical</p>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--status-critical)' }}>8</div>
-        </div>
-        <div className="card" style={{ borderBottom: '3px solid var(--status-warning)' }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '10px' }}>High</p>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--status-warning)' }}>15</div>
-        </div>
-        <div className="card" style={{ borderBottom: '3px solid var(--primary-neon)' }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '10px' }}>Medium</p>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--primary-neon)' }}>14</div>
-        </div>
-        <div className="card" style={{ borderBottom: '3px solid var(--status-good)' }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '10px' }}>Low</p>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--status-good)' }}>8</div>
-        </div>
-      </div>
-
-      {/* Table Container */}
-      <div className="card" style={{ flex: 1, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        
-        {/* Toolbar */}
-        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: '15px' }}>
-            <div style={{ position: 'relative' }}>
-              <Search size={16} style={{ position: 'absolute', left: 10, top: 10, color: 'var(--text-muted)' }} />
-              <input type="text" className="input-field" placeholder="Search alerts..." style={{ paddingLeft: '35px', width: '220px' }} />
-            </div>
-            <select className="input-field" style={{ width: '130px' }}><option>All Status</option></select>
-            <select className="input-field" style={{ width: '130px' }}><option>All Priorities</option></select>
-            <select className="input-field" style={{ width: '130px' }}><option>Today</option></select>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <div>
+            <h2 style={{ marginBottom: 5 }}>Active Alerts</h2>
+            <p style={{ fontSize: '0.9rem' }}>Threshold-based anomaly detection across all 50 machines</p>
           </div>
-          
-          <button className="btn btn-secondary">
-            <CheckCircle2 size={16} /> Mark All Read
-          </button>
+          <button className="btn btn-secondary" onClick={load}><RefreshCw size={14} /> Refresh</button>
         </div>
 
-        {/* Table */}
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ background: 'rgba(255,255,255,0.02)', color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase' }}>
-                <th style={{ padding: '15px', fontWeight: 600, borderBottom: '1px solid var(--border-color)' }}>Alert ID</th>
-                <th style={{ padding: '15px', fontWeight: 600, borderBottom: '1px solid var(--border-color)' }}>Machine</th>
-                <th style={{ padding: '15px', fontWeight: 600, borderBottom: '1px solid var(--border-color)' }}>Alert Type</th>
-                <th style={{ padding: '15px', fontWeight: 600, borderBottom: '1px solid var(--border-color)' }}>Priority</th>
-                <th style={{ padding: '15px', fontWeight: 600, borderBottom: '1px solid var(--border-color)' }}>Message</th>
-                <th style={{ padding: '15px', fontWeight: 600, borderBottom: '1px solid var(--border-color)' }}>Time</th>
-                <th style={{ padding: '15px', fontWeight: 600, borderBottom: '1px solid var(--border-color)' }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {alertData.map((a) => (
-                <tr key={a.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row-hover">
-                  <td style={{ padding: '15px', fontWeight: 500, color: 'var(--text-muted)' }}>{a.id}</td>
-                  <td style={{ padding: '15px', color: 'var(--primary-neon)', fontWeight: 500 }}>{a.machine}</td>
-                  <td style={{ padding: '15px' }}>{a.type}</td>
-                  <td style={{ padding: '15px' }}>
-                    <span style={{ color: a.priority === 'Critical' ? 'var(--status-critical)' : a.priority === 'High' ? 'var(--status-warning)' : a.priority === 'Medium' ? 'var(--primary-neon)' : 'var(--status-good)', fontWeight: 600 }}>
-                      {a.priority}
-                    </span>
-                  </td>
-                  <td style={{ padding: '15px' }}>{a.msg}</td>
-                  <td style={{ padding: '15px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>{a.time}</td>
-                  <td style={{ padding: '15px' }}>
-                    <span className={`tag ${a.status === 'New' ? 'tag-critical' : 'tag-neutral'}`} style={a.status === 'New' ? { background: 'var(--status-critical)', color: '#000', border: 'none' } : {}}>
-                      {a.status}
-                    </span>
-                  </td>
-                </tr>
+        {/* KPI Cards */}
+        <div className="grid-cols-4">
+          {[
+            ['Total Alerts', data?.total, 'var(--text-main)'],
+            ['Critical', data?.critical_count, 'var(--status-critical)'],
+            ['Warning',  data?.warning_count,  'var(--status-warning)'],
+            ['Acknowledged', acknowledged.size, 'var(--status-good)'],
+          ].map(([label, val, color]) => (
+            <div key={label} className="card">
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: 10 }}>{label}</p>
+              {loading ? <Shimmer height={36} /> : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ fontSize: '2.2rem', fontWeight: 'bold', color }}>{val ?? 0}</div>
+                  {label === 'Critical' && (val ?? 0) > 0 && (
+                    <Bell size={20} color="var(--status-critical)" style={{ animation: 'pulse 1.5s infinite' }} />
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Thresholds Reference Card */}
+        {data?.thresholds && (
+          <div className="card" style={{ padding: '1rem 1.5rem' }}>
+            <h4 style={{ marginBottom: '0.75rem', fontSize: '0.9rem' }}>Active Threshold Configuration</h4>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+              {[
+                ['🌡️ Temp Warning', `>${data.thresholds.temperature_warning}°C`],
+                ['🌡️ Temp Critical', `>${data.thresholds.temperature_critical}°C`],
+                ['📳 Vibration Warn', `>${data.thresholds.vibration_warning} Hz`],
+                ['📳 Vibration Crit', `>${data.thresholds.vibration_critical} Hz`],
+                ['📡 Latency Warn', `>${data.thresholds.latency_warning} ms`],
+                ['📡 Latency Crit', `>${data.thresholds.latency_critical} ms`],
+                ['📶 Packet Loss', `>${data.thresholds.packet_loss_warning}%`],
+                ['🔧 Maint. Score', `<${data.thresholds.maintenance_score_critical}`],
+              ].map(([label, val]) => (
+                <div key={label} style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--bg-hover)', border: '1px solid var(--border-color)', fontSize: '0.78rem' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>{label}: </span>
+                  <span style={{ color: 'var(--primary-neon)', fontWeight: 600 }}>{val}</span>
+                </div>
               ))}
-            </tbody>
-          </table>
+              <div style={{ marginLeft: 'auto', alignSelf: 'center' }}>
+                <a href="/settings" style={{ fontSize: '0.8rem', color: 'var(--primary-neon)', textDecoration: 'none' }}>Edit thresholds →</a>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Filters */}
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: 12, alignItems: 'center' }}>
+            <select className="input-field" style={{ width: 150, fontSize: '0.85rem' }} value={filter} onChange={e => setFilter(e.target.value)}>
+              <option value="">All Severities</option>
+              <option value="Critical">Critical</option>
+              <option value="Warning">Warning</option>
+            </select>
+            <select className="input-field" style={{ width: 160, fontSize: '0.85rem' }} value={catFilter} onChange={e => setCat(e.target.value)}>
+              <option value="">All Categories</option>
+              {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>
+              {filtered.length} active · {acknowledged.size} acknowledged
+            </span>
+          </div>
+
+          {/* Alerts List */}
+          <div style={{ maxHeight: 520, overflowY: 'auto' }}>
+            {loading ? (
+              <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {Array.from({ length: 8 }).map((_, i) => <Shimmer key={i} height={70} />)}
+              </div>
+            ) : filtered.length === 0 ? (
+              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--status-good)' }}>
+                <Bell size={32} style={{ marginBottom: 12, opacity: 0.5 }} />
+                <div style={{ fontWeight: 600 }}>No active alerts</div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 4 }}>All machines are within normal operating thresholds.</div>
+              </div>
+            ) : (
+              filtered.map(alert => (
+                <div key={alert.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', transition: 'background 0.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+
+                  {/* Severity Indicator */}
+                  <div style={{
+                    width: 4, height: 48, borderRadius: 2, flexShrink: 0,
+                    background: alert.severity === 'Critical' ? 'var(--status-critical)' : 'var(--status-warning)',
+                    ...(alert.severity === 'Critical' ? { animation: 'pulse 1.5s infinite' } : {})
+                  }} />
+
+                  {/* Category Icon */}
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                    background: alert.severity === 'Critical' ? 'rgba(248,81,73,0.15)' : 'rgba(210,153,34,0.15)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: alert.severity === 'Critical' ? 'var(--status-critical)' : 'var(--status-warning)'
+                  }}>
+                    {CATEGORY_ICON[alert.category] || <Bell size={16} />}
+                  </div>
+
+                  {/* Content */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 3 }}>
+                      <span style={{ fontWeight: 600, color: 'var(--primary-neon)' }}>{alert.machine}</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{alert.category}</span>
+                      <span className={`tag tag-${alert.tag}`}>{alert.severity}</span>
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {alert.message}
+                    </div>
+                  </div>
+
+                  {/* Date & Action */}
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 8 }}>{alert.date}</div>
+                    <button
+                      onClick={() => setAck(prev => new Set([...prev, alert.id]))}
+                      style={{ fontSize: '0.75rem', padding: '4px 10px', borderRadius: 6, background: 'var(--bg-hover)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.2s' }}
+                      onMouseEnter={e => { e.target.style.background = 'var(--status-good)'; e.target.style.color = '#000'; e.target.style.borderColor = 'var(--status-good)'; }}
+                      onMouseLeave={e => { e.target.style.background = 'var(--bg-hover)'; e.target.style.color = 'var(--text-muted)'; e.target.style.borderColor = 'var(--border-color)'; }}>
+                      Acknowledge
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
-      
-      <style dangerouslySetInnerHTML={{__html: `
-        .table-row-hover:hover { background-color: rgba(255,255,255,0.02); }
-      `}} />
-    </div>
+    </>
   );
 }
