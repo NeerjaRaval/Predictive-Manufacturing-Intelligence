@@ -10,7 +10,21 @@ class LocalCSVAI:
     def __init__(self, csv_path="Thales_Group_Manufacturing.csv"):
         self.csv_path = csv_path
         self.df = None
+        self.load_dotenv()
         self.load_data()
+
+    def load_dotenv(self):
+        """Loads a local .env file into environment variables if present."""
+        if os.path.exists(".env"):
+            try:
+                with open(".env", "r") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith("#") and "=" in line:
+                            k, v = line.split("=", 1)
+                            os.environ[k.strip()] = v.strip().strip('"').strip("'")
+            except Exception as e:
+                print(f"Failed to read .env file: {e}")
         
     def load_data(self):
         try:
@@ -27,26 +41,56 @@ class LocalCSVAI:
             print(f"LocalCSVAI ERROR loading CSV: {e}")
 
     def check_ollama(self):
-        """Check if local Ollama service is running."""
+        """Check if local/configured Ollama service is running."""
+        host = os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
         try:
-            r = requests.get("http://localhost:11434", timeout=0.5)
+            r = requests.get(host, timeout=0.5)
             return r.status_code == 200
         except Exception:
             return False
 
     def query_ollama(self, prompt, model="llama3"):
-        """Query local Ollama LLM."""
+        """Query Ollama LLM."""
+        host = os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
         try:
             payload = {
-                "model": model,
+                "model": os.environ.get("OLLAMA_MODEL", model),
                 "prompt": prompt,
                 "stream": False
             }
-            r = requests.post("http://localhost:11434/api/generate", json=payload, timeout=10)
+            r = requests.post(f"{host}/api/generate", json=payload, timeout=10)
             if r.status_code == 200:
                 return r.json().get("response", "")
         except Exception as e:
             print(f"Ollama query failed: {e}")
+        return None
+
+    def check_gemini(self):
+        """Check if Google Gemini API key is present in environment."""
+        return bool(os.environ.get("GEMINI_API_KEY"))
+
+    def query_gemini(self, prompt):
+        """Query Google Gemini API model."""
+        key = os.environ.get("GEMINI_API_KEY")
+        if not key:
+            return None
+        model = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+            headers = {"Content-Type": "application/json"}
+            payload = {
+                "contents": [{
+                    "parts": [{"text": prompt}]
+                }]
+            }
+            r = requests.post(url, headers=headers, json=payload, timeout=10)
+            if r.status_code == 200:
+                res_data = r.json()
+                return res_data["candidates"][0]["content"]["parts"][0]["text"]
+            else:
+                print(f"Gemini API error {r.status_code}: {r.text}")
+        except Exception as e:
+            print(f"Gemini API query failed: {e}")
         return None
 
     def analyze(self, user_query):
@@ -452,9 +496,8 @@ class LocalCSVAI:
                 "table": chart_data
             }
 
-        # DEFAULT RESPONSE: If Ollama is available, query it to provide an intelligent fallback. Otherwise, do general query matches.
-        if self.check_ollama():
-            # Construct dataset summary prompt
+        # DEFAULT RESPONSE: Query LLM if available (Gemini preferred, then local/configured Ollama). Otherwise, do traditional fallback.
+        if self.check_gemini() or self.check_ollama():
             avg_row = self.df.mean(numeric_only=True).to_dict()
             prompt = f"""
 You are an expert AI data analyst at an industrial manufacturing smart factory.
@@ -472,10 +515,15 @@ Here is the average status of the factory:
 The user is asking: "{user_query}"
 Give a professional, brief, insightful answer about this smart manufacturing factory data. Keep it highly relevant, concise, and structured in Markdown.
 """
-            ollama_response = self.query_ollama(prompt)
-            if ollama_response:
+            llm_response = None
+            if self.check_gemini():
+                llm_response = self.query_gemini(prompt)
+            elif self.check_ollama():
+                llm_response = self.query_ollama(prompt)
+                
+            if llm_response:
                 return {
-                    "text": ollama_response,
+                    "text": llm_response,
                     "chart": None,
                     "table": None
                 }

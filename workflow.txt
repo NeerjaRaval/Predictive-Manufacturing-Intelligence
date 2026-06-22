@@ -1,0 +1,83 @@
+Here is an overview of the file structure and the end-to-end data/operational workflow of the **Predictive Manufacturing Intelligence** project.
+
+---
+
+### 📂 Directory & File Structure
+
+```text
+Predictive Manufacturing Intelligence/
+│
+├── ⚙️ Backend Core & ML Entrypoints
+│   ├── api.py                     # FastAPI REST server exposing dashboard, metrics, and Copilot endpoints
+│   ├── local_csv_ai.py            # Local Copilot engine; resolves NLP queries directly from CSV (with Ollama fallback)
+│   ├── train.py                   # Entrypoint to execute feature engineering, tuning, and ML model training
+│   ├── clean_caches.py            # Utility script to clean up __pycache__ and temporary directories
+│   ├── config.yaml / auth_config.yaml  # Server configuration and authorization profiles
+│   └── Thales_Group_Manufacturing.csv  # Base dataset: Historical IoT telemetry logs for 50 machines
+│
+├── 🧠 Machine Learning Engine (src/)
+│   ├── preprocessing.py           # Prepares CSV telemetry logs and performs data cleaning
+│   ├── feature_engineering.py     # Generates derived metrics for modeling (e.g. rolling telemetry aggregates)
+│   ├── model_training.py          # Trains RF, XGBoost, and Logistic Regression models; saves serialized models (.pkl)
+│   ├── hyperparameter_tuning.py   # Performs grid search and hyperparameter optimizations
+│   ├── explainability.py          # Computes SHAP or feature importances to explain ML predictions
+│   ├── monitoring.py              # Monitors live sensor feeds for outliers and drift
+│   └── report_generator.py        # Automated PDF/Markdown report compiler for factory operations
+│
+├── 🎨 React Frontend Dashboard (frontend/)
+│   ├── index.html / vite.config.js # Vite React configuration
+│   └── src/
+│       ├── App.jsx / main.jsx     # Main entry and routes provider
+│       ├── Layout.jsx             # Premium sidebar and global shell wrapper
+│       ├── index.css              # Custom styling definitions (Neon vibes, Glassmorphism, CSS vars)
+│       └── pages/                 # UI dashboard pages:
+│           ├── Dashboard.jsx      # Top-level factory KPIs (OEE, AI Health, Active Alerts, failure risks)
+│           ├── Machines.jsx       # Grid list of all 50 machines with live search, filters, and averages
+│           ├── Predictions.jsx    # Model playground for single or batch manual telemetry testing
+│           ├── Alerts.jsx         # Live telemetry warnings (Thermal, Mechanical, Network, Quality anomalies)
+│           ├── Maintenance.jsx    # List of machines flagged for preventative actions based on low scores
+│           ├── Energy.jsx         # Power consumption patterns, correlation metrics, and efficiency
+│           ├── Analytics.jsx      # Historical trends, aggregates, and bottleneck trackers
+│           ├── Reports.jsx        # PDF compiled report generation and export interface
+│           └── Settings.jsx       # Controls active models and safety warning thresholds
+│
+└── 🐳 Deploy & Diagnostics
+    ├── Dockerfile / docker-compose.yml  # Multi-container orchestration configurations
+    ├── nginx/                     # Reverse proxy configuration
+    ├── logs/                      # Directory for system running logs and prediction audits
+    └── models/                    # Saved artifacts (random_forest.pkl, scaler.pkl, label_encoder.pkl)
+```
+
+---
+
+### 🔄 End-to-End Operational Workflow
+
+The application runs on a continuous loop from data processing to user interaction:
+
+#### 1. The Offline Machine Learning Pipeline (`train.py`)
+* **Ingestion & Prep**: `preprocessing.py` reads `Thales_Group_Manufacturing.csv`, cleans column spacing, encodes target metrics (`Efficiency_Status`), and splits data.
+* **Feature Engineering**: `feature_engineering.py` creates mathematical models matching realistic equipment fatigue.
+* **Model Training**: `model_training.py` trains three candidate classifiers (Random Forest, XGBoost, Logistic Regression) to predict machine efficiency levels.
+* **Serialization**: The best performing models, standard scaler, and feature encoders are serialized (`.pkl`) and saved to the `models/` directory for use by the backend API.
+
+#### 2. The Real-time Backend Engine (`api.py`)
+* **Startup**: FastAPI starts, loads the massive `Thales_Group_Manufacturing.csv` dataset, and loads all `.pkl` models into memory.
+* **Data Processing**: Computes live rolling metrics from the latest timestamps in the CSV (calculating OEE, composite AI Health scores, and tracking threshold violations).
+* **Endpoints**: Exposes REST interfaces supporting:
+  * Telemetry states for individual machines (`/api/machines/{id}`).
+  * Predictions using whichever model is set as active (`/predict`, `/predict_batch`).
+  * Safety thresholds configured dynamically (`/api/settings`).
+  * Copilot capabilities (`/api/copilot`).
+
+#### 3. The Interactive AI Copilot (`local_csv_ai.py`)
+* When a user queries the Copilot chatbot in the interface, the request is directed to the `/api/copilot` endpoint.
+* `LocalCSVAI` interprets the query (using regular expressions and pattern matching):
+  * **Analytical Intents** (e.g. *"Compare Machine 2 and 4"*, *"Show Machine 12"*): The parser instantly queries pandas internally, processes correlations, flags outliers, compiles a detailed Markdown table, and structures a visual Recharts dataset.
+  * **Free-form NLP Queries**: If a local **Ollama** model (like `llama3`) is running on port `11434`, it acts as a fallback, utilizing a prompt enriched with factory statistics to respond intelligently.
+
+#### 4. The Frontend Presentation Layer (React + Vite)
+* The Vite dev server delivers a sleek web panel that fetches data continuously from the backend server.
+* Key UI functions include:
+  * **State Management**: Displays critical machines first using high-impact warnings (Critical 🔴, Warning 🟡, Healthy 🟢).
+  * **Dynamic Customization**: Allows managers to modify active models (e.g. switch from XGBoost to Random Forest) and adjust safety boundaries (e.g. warning on temperature when exceeding `78°C`).
+  * **Data Representation**: Uses high-performance components (like Recharts) to render power distribution, performance targets, and OEE percentages in a unified interface.

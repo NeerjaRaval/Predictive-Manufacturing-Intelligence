@@ -44,25 +44,44 @@ export default function Reports() {
 
   useEffect(() => { load(); }, []);
 
-  const generateReport = () => {
-    const now = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-    setGenerated({
-      date: now,
-      summary: {
-        oee: kpis?.oee,
-        alerts: alerts.length,
-        critical_alerts: alerts.filter(a => a.severity === 'Critical').length,
-        maintenance_tasks: maintenance.length,
-        critical_tasks: maintenance.filter(t => t.priority === 'Critical').length,
-        total_machines: machines.length,
-        healthy: machines.filter(m => m.status === 'Healthy').length,
-        warning: machines.filter(m => m.status === 'Warning').length,
-        critical_machines: machines.filter(m => m.status === 'Critical').length,
-        efficiency_high: kpis?.efficiency_distribution?.high,
-        efficiency_low:  kpis?.efficiency_distribution?.low,
-        ai_health: kpis?.ai_health_score,
-      }
-    });
+  const generateReport = async () => {
+    setExporting('executive');
+    try {
+      const response = await fetch('/api/reports/download');
+      if (!response.ok) throw new Error('Failed to generate PDF report');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `executive_report_${Date.now()}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      const now = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      setGenerated({
+        date: now,
+        summary: {
+          oee: kpis?.oee,
+          alerts: alerts.length,
+          critical_alerts: alerts.filter(a => a.severity === 'Critical').length,
+          maintenance_tasks: maintenance.length,
+          critical_tasks: maintenance.filter(t => t.priority === 'Critical').length,
+          total_machines: machines.length,
+          healthy: machines.filter(m => m.status === 'Healthy').length,
+          warning: machines.filter(m => m.status === 'Warning').length,
+          critical_machines: machines.filter(m => m.status === 'Critical').length,
+          efficiency_high: kpis?.efficiency_distribution?.high,
+          efficiency_low:  kpis?.efficiency_distribution?.low,
+          ai_health: kpis?.ai_health_score,
+        }
+      });
+    } catch (err) {
+      alert('Error generating PDF report: ' + err.message);
+    } finally {
+      setExporting('');
+    }
   };
 
   const handleExport = async (type) => {
@@ -127,9 +146,9 @@ export default function Reports() {
               <div style={{ flex: 1 }}>
                 <h3 style={{ marginBottom: 6, fontSize: '1rem' }}>{r.title}</h3>
                 <p style={{ fontSize: '0.85rem', marginBottom: '1rem', lineHeight: 1.5 }}>{r.desc}</p>
-                <button className="btn btn-primary" onClick={r.action} disabled={loading || exporting === r.id}
+                <button className="btn btn-primary" onClick={r.action} disabled={loading || (exporting !== '' && exporting !== r.id)}
                   style={{ fontSize: '0.8rem', padding: '6px 16px' }}>
-                  {exporting === r.id ? '⏳ Exporting...' : r.id === 'executive' ? '📄 Generate Report' : <><Download size={14} /> Export CSV</>}
+                  {exporting === r.id ? (r.id === 'executive' ? '⏳ Generating...' : '⏳ Exporting...') : r.id === 'executive' ? '📄 Generate Report' : <><Download size={14} /> Export CSV</>}
                 </button>
               </div>
             </div>

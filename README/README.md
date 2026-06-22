@@ -1,94 +1,133 @@
-# AI-Based Manufacturing Efficiency Intelligence
+# AI-Based Smart Manufacturing Predictive Intelligence
 
-A production-grade Machine Learning pipeline and interactive analytical dashboard designed to monitor, predict, and explain manufacturing efficiency using sensor telemetry, production metrics, and 6G network data.
+A production-grade Machine Learning classification system and interactive analytical dashboard designed to monitor, predict, and explain manufacturing efficiency using sensor telemetry, production metrics, and 6G network data.
+
+---
 
 ## 🚀 Project Overview
 
-In modern smart factories enabled by Industrial IoT and 6G connectivity, efficiency can fluctuate rapidly due to sensor deviations, network instability, and quality variations. Traditional dashboards only show historical data, but this system answers the critical question: **What is the current efficiency state of the manufacturing process right now, and why?**
+In modern smart factories enabled by Industrial IoT and 6G connectivity, operational efficiency can fluctuate rapidly due to sensor deviations, network instability, and quality variations. This project moves away from static, historical reports to provide a real-time answer to the critical operational questions: **What is the current efficiency state of the manufacturing process right now, why is it in that state, and when is maintenance required?**
 
-This project features a fully automated Machine Learning pipeline (handling extreme class imbalances) and a professional 5-page Streamlit dashboard tailored for corporate environments.
+This repository features:
+1. **FastAPI REST Service (`api.py`)** exposing full dashboard metrics, dynamic threshold configurations, ML model selection, and an on-the-fly PDF Executive Report compiler.
+2. **Machine Learning Engine (`src/`)** performing robust feature engineering, handling extreme class imbalance (using SMOTE), hyperparameter tuning (using Optuna), and explaining predictions via SHAP.
+3. **React Frontend Dashboard (`frontend/`)** providing a premium, interactive dark-themed corporate UI with glassmorphism styling and real-time visualization of fleet telemetry.
+
+---
 
 ## ✨ Key Features
 
-### 1. Robust Machine Learning Pipeline (`src/`)
-* **Data Preprocessing**: Handles temporal sorting, scales numerical features, and encodes categorical states.
-* **Feature Engineering**: Centralized generation of complex interaction metrics (e.g., *Energy Efficiency Ratio*, *Network Reliability Score*, *Sensor Stability Index*).
-* **Class Imbalance Handling**: Utilizes SMOTE (Synthetic Minority Over-sampling Technique) to accurately predict the rare "High Efficiency" class (which constitutes only 3% of the raw data).
-* **Model Optimization**: Automated hyperparameter tuning using Optuna. The production model is a **Random Forest Classifier** achieving an exceptional **Macro F1 Score of 0.9965**.
-* **Explainability Engine**: Integrated SHAP (SHapley Additive exPlanations) values generation for deep model interpretability.
+### 1. Robust Machine Learning Engine (`src/`)
+* **Data Preprocessing & Encoding**: Handles temporal sorting, scales numerical features via standard scaler, and encodes operational modes.
+* **Feature Engineering**: Computes derived interaction metrics:
+  - *Energy Efficiency Ratio* (Power Consumption vs. Speed)
+  - *Network Reliability Score* (Latency vs. Packet Loss)
+  - *Sensor Stability Index* (Temperature vs. Vibration)
+* **Class Imbalance Handling**: Employs SMOTE (Synthetic Minority Over-sampling Technique) to address the extreme class imbalance of the rare "High Efficiency" state (approx. 3% of logs).
+* **Model Optimization**: Automated hyperparameter tuning via Optuna. Evaluates Random Forest, XGBoost, and Logistic Regression models.
+* **Explainability Panel**: Computes SHAP (SHapley Additive exPlanations) values to determine features that drive efficiency predictions.
 
-### 2. Professional Streamlit Dashboard (`pages/`)
-The application features a sleek, slate-blue corporate UI with 5 interactive modules:
-* **Executive Summary (`app.py`)**: High-level KPIs, production yield, defect rates, and a 1-click Executive PDF Report Generator.
-* **Efficiency Prediction**: Single-record live inference with interactive parameter sliders. Predicts whether a machine will operate at High, Medium, or Low efficiency.
-* **Machine Fleet Insights**: Global heatmap showing the health distribution of all active manufacturing nodes (50 machines). Allows for deep-dive analysis into specific hardware.
-* **AI Explainability (SHAP)**: Demystifies the AI decision-making process. Shows global feature impact (e.g., which sensors drive efficiency) and micro-level waterfall charts for individual predictions.
-* **Operational Monitoring**: Segment efficiency by operation modes and compare IT (network) vs OT (sensor) metrics. Features a powerful **What-If Stress Test Simulator** to project fleet-wide impacts of latency or power fluctuations.
-* **Automated Data Explorer**: Raw telemetry viewer with auto-generated univariate distributions, bivariate scatter plots, and Pearson correlation matrices.
+### 2. High-Performance REST API (`api.py`)
+* Fully documented FastAPI application supporting endpoints for:
+  - Summary KPIs (OEE, Active Alerts count, Predicted Failures).
+  - Telemetry logs & averages for the fleet of 50 machines (`/api/machines`).
+  - Single and batch machine prediction overrides (`/predict` & `/predict_batch`).
+  - AI Copilot natural-language CSV analysis (`/api/copilot`) supporting structured Recharts responses.
+  - On-the-fly PDF Executive Summary compiler (`/api/reports/download`).
+
+### 3. Sleek React Dashboard UI (`frontend/`)
+Designed as a dark-mode dashboard with custom micro-animations and Recharts visualization:
+* **Dashboard Home**: High-impact operational summaries: overall OEE index, active anomaly warnings, and AI health scoring.
+* **Machine Fleet Explorer**: A responsive grid to inspect and filter all 50 machines, including search by Machine ID and sorting by telemetry thresholds.
+* **Playground Predictor**: Run manual telemetry tests for single or batch rows using different models (Random Forest, XGBoost, Logistic Regression).
+* **Energy Analytics**: Correlation matrices, power profiles, and energy-to-speed ratios.
+* **Interactive Settings Panel**: Allows operators to switch the active backend ML model on-the-fly and customize warning/critical safety thresholds.
+
+---
 
 ## 🛠️ Technology Stack
-* **Core**: Python 3.9+
-* **Machine Learning**: Scikit-Learn, Optuna, Imbalanced-Learn (SMOTE)
-* **Model Explainability**: SHAP
+
+* **Backend REST API**: FastAPI, Uvicorn, Python 3.9+
+* **Machine Learning**: Scikit-Learn, XGBoost, Optuna, Imbalanced-Learn (SMOTE), Joblib
 * **Data Manipulation**: Pandas, NumPy
-* **Interactive UI**: Streamlit
-* **Data Visualization**: Plotly Express & Plotly Graph Objects
-* **Reporting**: FPDF2
+* **Explainability**: SHAP
+* **Reporting**: FPDF2, Matplotlib, Seaborn
+* **Frontend Web App**: React, Vite, React Router, Recharts, Lucide Icons, Vanilla CSS
+
+---
 
 ## 📦 Project Structure
 
 ```text
 Predictive Manufacturing Intelligence/
 │
-├── app.py                            # Dashboard Home / Executive Summary
-├── pages/                            # Dashboard Modules
-│   ├── 1_Efficiency_Prediction.py
-│   ├── 2_Machine_Insights.py
-│   ├── 3_Explainability.py
-│   ├── 4_Operational_Monitoring.py
-│   └── 5_Data_Explorer.py
+├── api.py                         # FastAPI REST API (OEE calculations, telemetry endpoints, settings)
+├── local_csv_ai.py                # Local Copilot engine (matches intents, parses CSV, Ollama query fallback)
+├── train.py                       # Master ML training pipeline (SMOTE, Optuna tuning, saves models)
+├── requirements.txt               # Backend Python dependencies
+├── package.json                   # Root package.json (cross-project runner scripts)
 │
-├── src/                              # ML Pipeline Modules
-│   ├── preprocessing.py
-│   ├── feature_engineering.py
-│   ├── model_training.py
-│   └── report_generator.py
+├── src/                           # Backend Python Modules
+│   ├── preprocessing.py           # Ingestion, cleaning, temporal splitting
+│   ├── feature_engineering.py     # Energy ratios, network scores, sensor index
+│   ├── model_training.py          # Baseline and advanced model fitting
+│   ├── hyperparameter_tuning.py   # Optuna tuning wrapper
+│   ├── explainability.py          # SHAP explainer generator
+│   ├── monitoring.py              # Audit logs & prediction drift checking
+│   └── report_generator.py        # Executive PDF compilation using FPDF
 │
-├── train.py                          # Master ML training script
-├── models/                           # Saved models, scalers, & encoders (generated after train.py)
-├── outputs/                          # Generated SHAP data and PDF reports
-├── README/                           # Project documentation
-└── Thales_Group_Manufacturing.csv    # Raw telemetry dataset
+├── frontend/                      # React Frontend Application
+│   ├── index.html                 # HTML shell
+│   ├── package.json               # NPM packages & build steps
+│   └── src/                       # React components & pages
+│       ├── App.jsx / main.jsx     # App entry & Routing configuration
+│       ├── Layout.jsx             # Neon-themed sidebar layout and wrapper
+│       └── pages/                 # UI pages (Dashboard, Machines, Predictions, Energy, Settings, etc.)
+│
+├── models/                        # Serialized ML assets (*.pkl files, scaler, features list)
+├── outputs/                       # Saved Matplotlib charts & generated PDF files
+└── Thales_Group_Manufacturing.csv # Telemetry dataset (100,000 logs for 50 machines)
 ```
 
-## ⚙️ How to Run Locally
+---
 
-1. **Install Dependencies:**
-   Ensure you have Python installed, then run:
-   ```bash
-   pip install -r requirements.txt
-   ```
-   *(Ensure you have `streamlit`, `pandas`, `scikit-learn`, `plotly`, `shap`, `imbalanced-learn`, `optuna`, and `fpdf2` installed).*
+## ⚙️ How to Setup and Run Locally
 
-2. **Train the ML Pipeline:**
-   Before running the dashboard, generate the models and SHAP explainer by running the training script:
-   ```bash
-   python train.py
-   ```
-   *Note: This will take a few moments as it runs SMOTE, Optuna hyperparameter tuning, and SHAP value generation. Outputs will be saved in the `models/` directory.*
+### 1. Root Scripts & Dependencies Installation
+From the project root directory, run:
+```bash
+# Install backend Python dependencies
+pip install -r requirements.txt
 
-3. **Launch the Dashboard:**
-   Start the interactive Streamlit server:
-   ```bash
-   streamlit run app.py
-   ```
-   The dashboard will automatically open in your default web browser at `http://localhost:8501`.
+# Install frontend Node dependencies (Vite, React, Recharts, etc.)
+npm run install-all
+```
+
+### 2. Train the Machine Learning Models
+Generate the model files (`.pkl`) and explanation vectors by running:
+```bash
+python train.py
+```
+*Note: This script will run SMOTE oversampling, evaluate Random Forest/XGBoost models, perform hyperparameter tuning with Optuna, and serialize outputs to the `models/` directory.*
+
+### 3. Launch the Application
+Start both the FastAPI backend server and the React frontend development server simultaneously:
+```bash
+# Starts FastAPI on http://localhost:8000 and the React dev server on http://localhost:5173
+npm run dev
+```
+
+Alternatively, you can start them separately:
+```bash
+# To start the Backend API:
+npm run start-api
+
+# To start the React Frontend (from the frontend directory):
+cd frontend && npm run dev
+```
+
+---
 
 ## 📈 Future Scalability
-* **Deployment**: The system is fully containerizable via Docker for deployment to cloud platforms (AWS/Azure/GCP).
-* **API Integration**: The prediction logic in `model_training.py` can be exposed as a REST endpoint using FastAPI to integrate seamlessly with existing factory execution systems (MES). 
-
-
-
-
-
+* **Real-time Streaming**: Connect the API to an Apache Kafka or MQTT broker to consume live sensor telemetry streams directly.
+* **Model Retraining Trigger**: Schedule cron-jobs to automatically retrain the pipeline when prediction drift (monitored in `src/monitoring.py`) exceeds 15%.
